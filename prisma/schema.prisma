@@ -1,0 +1,33 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Rank {
+  COPPER
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+  EMERALD
+  KOBOLT
+}
+
+model User {
+  id          Int @id @default(autoincrement())
+  username    String @unique
+  score       Int @default(0)
+  ranking     Rank @default(COPPER)
+
+  @@map("users")
+}
