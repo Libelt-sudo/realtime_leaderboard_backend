@@ -1,0 +1,18 @@
+node_modules
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# TypeScript build output
+dist/
+tsconfig.tsbuildinfo
+
+# Prisma generated client
+/generated/prisma
+
+# Editor / OS
+.DS_Store
+.idea/
+*.swp
