@@ -1,17 +1,24 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #     - DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #     redis_store:
+  #       condition: service_started
+  #   restart: unless-stopped
+
+  redis_store:
+    image: redis:latest
     ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
+      - "6379:6379"
 
   db:
     image: postgres:15

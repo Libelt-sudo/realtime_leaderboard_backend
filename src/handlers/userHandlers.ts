@@ -1,8 +1,6 @@
 import { type Request, type Response } from 'express';
 import { prisma } from "../lib/prisma.js"
-import { assert } from 'node:console';
-import { string } from 'zod';
-
+import { redisClient } from '../redis_client.ts';
 
 export const handleRegisteration = async (req: Request, res: Response) => {
     try{
@@ -11,8 +9,11 @@ export const handleRegisteration = async (req: Request, res: Response) => {
                 username: req.body["username"]
             }
         });
-
-        res.json({ response: `Added ${user.username} to the leaderboard` });
+        
+        await redisClient.ZADD("leaderboard", {score: user.score, value: user.username});
+        const leaderboard_users = await redisClient.zRangeWithScores("leaderboard", 0, -1, { REV: true });
+        console.log(leaderboard_users);
+        res.json({ response: `Added ID: ${user.id} ${user.username} to the leaderboard` });
     }
     catch (e){
         console.error('Error creating user:', e);
@@ -33,12 +34,16 @@ export const handleUpdate = async (req: Request, res: Response) => {
             throw new Error("path parameter 'username' not provided!")
         }
 
+        
         const user = await prisma.user.update({
             where: {username: username},
-            data: {score: req.body["score"]}
+            data: {score: {increment: req.body["score"]}}
         });
-
-        res.json({ response: `Updated user: ${user.username}'s score to [SCORE: ${user.score}, RANK: ${user.ranking}]` });
+    
+        redisClient.ZINCRBY("leaderboard", req.body["score"], user.username);
+        const leaderboard_users = await redisClient.zRangeWithScores("leaderboard", 0, -1, { REV: true });
+        console.log(leaderboard_users);
+        res.json({response: `Updated user: ${user.username}'s score to [SCORE: ${user.score}, RANK: ${user.ranking}]`});
         
     }catch (e){
         console.error('Error creating user:', e);
