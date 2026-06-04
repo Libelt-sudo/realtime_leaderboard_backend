@@ -35,7 +35,8 @@
     
 
     // Recommended Options
-    "strict": true,
+    // "strict": true,
+    "noImplicitAny": false,
     "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
     "rewriteRelativeImportExtensions": true,

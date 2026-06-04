@@ -1,8 +1,20 @@
 import { type Request, type Response } from 'express';
 import { prisma } from "../lib/prisma.js"
 import { redisClient } from '../redis_client.ts';
+import type { Server } from 'socket.io';
 
-export const handleRegisteration = async (req: Request, res: Response) => {
+const getLeaderboardScores = async () => {
+    const leaderboard_scores = await redisClient.zRangeWithScores("leaderboard", 0, -1, {REV: true});
+    console.log(leaderboard_scores);
+    return leaderboard_scores;
+}
+
+export const handleOnConnection = async (socket) => {
+    const leaderboardScores = await getLeaderboardScores();
+    socket.emit("leaderboard:update", {leaderboard: leaderboardScores});
+}
+
+export const handleRegisteration = async (req: Request, res: Response, io: Server) => {
     try{
         const user = await prisma.user.create({
             data: {
@@ -11,8 +23,11 @@ export const handleRegisteration = async (req: Request, res: Response) => {
         });
         
         await redisClient.ZADD("leaderboard", {score: user.score, value: user.username});
-        const leaderboard_users = await redisClient.zRangeWithScores("leaderboard", 0, -1, { REV: true });
-        console.log(leaderboard_users);
+        await redisClient.zRangeWithScores("leaderboard", 0, -1, { REV: true });
+
+        const leaderboardScores = await getLeaderboardScores();
+        io.emit("leaderboard:update", {leaderboard: leaderboardScores});
+
         res.json({ response: `Added ID: ${user.id} ${user.username} to the leaderboard` });
     }
     catch (e){
@@ -24,7 +39,7 @@ export const handleRegisteration = async (req: Request, res: Response) => {
 };
 
 
-export const handleUpdate = async (req: Request, res: Response) => {
+export const handleUpdate = async (req: Request, res: Response, io: Server) => {
     try{    
 
         const raw = req.params["username"];
@@ -41,8 +56,11 @@ export const handleUpdate = async (req: Request, res: Response) => {
         });
     
         redisClient.ZINCRBY("leaderboard", req.body["score"], user.username);
-        const leaderboard_users = await redisClient.zRangeWithScores("leaderboard", 0, -1, { REV: true });
-        console.log(leaderboard_users);
+        await redisClient.zRangeWithScores("leaderboard", 0, -1, { REV: true });
+
+        const leaderboardScores = await getLeaderboardScores();
+        io.emit("leaderboard:update", {leaderboard: leaderboardScores});
+
         res.json({response: `Updated user: ${user.username}'s score to [SCORE: ${user.score}, RANK: ${user.ranking}]`});
         
     }catch (e){
@@ -51,4 +69,9 @@ export const handleUpdate = async (req: Request, res: Response) => {
             error: 'Failed to update user score' 
         });
     }
-}
+};
+
+export const handleGet = async (req: Request, res: Response, io: Server) => {
+    const leaderboard_scores = getLeaderboardScores();
+    res.json({response: leaderboard_scores});
+};
