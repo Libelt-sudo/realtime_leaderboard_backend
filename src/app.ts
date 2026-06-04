@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 
 import { createServer } from "http";
 import { Server } from 'socket.io';
+import cors from "cors";
 
 import { redisClient } from './redis_client.ts';
 
@@ -21,8 +22,21 @@ const PORT = 3000;
 
 
 
+const corsOptions = {
+  origin: ["http://localhost:5173"],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+// Express HTTP routes
+app.use(cors(corsOptions));
+
+
 const httpServer = createServer(app);
-const io = new Server(httpServer); // Instnace of socket.io server
+const io = new Server(httpServer, {
+    cors: corsOptions
+}); // Instnace of socket.io server
 
 // Middleware to parse json
 app.use(express.json());

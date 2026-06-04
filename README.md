@@ -1,6 +1,6 @@
 # Realtime Leaderboard
 
-A backend API for a realtime leaderboard system built with Node.js, TypeScript, Express, PostgreSQL, and Redis. Player scores are persisted in PostgreSQL and cached in a Redis Sorted Set for fast ranked reads. WebSocket support via Socket.IO is included for future realtime broadcasting.
+A backend API for a realtime leaderboard system built with Node.js, TypeScript, Express, PostgreSQL, and Redis. Player scores are stored in PostgreSQL and cached in a Redis Sorted Set. WebSocket support via Socket.IO broadcasts live leaderboard updates to all connected clients whenever a score changes or a new player registers.
 
 ## Tech Stack
 
@@ -20,11 +20,11 @@ A backend API for a realtime leaderboard system built with Node.js, TypeScript, 
 ```
 realtime_leaderboard/
 ├── src/
-│   ├── app.ts                        # Express app, Socket.IO setup, route wiring
+│   ├── app.ts                        # Express app, Socket.IO server, CORS config, route wiring
 │   ├── services.ts                   # Startup: seeds Redis from Postgres if cache is empty
 │   ├── redis_client.ts               # Redis client singleton
 │   ├── handlers/
-│   │   └── userHandlers.ts           # Route handler logic (register, update score)
+│   │   └── userHandlers.ts           # Route handlers + Socket.IO event emission (register, update, get)
 │   ├── middleware/
 │   │   └── validationMiddleware.ts   # Zod-based request body validation
 │   ├── schemas/
@@ -75,7 +75,38 @@ Content-Type: application/json
 { "score": 150 }
 ```
 
-Atomically increments (or decrements if negative) the player's score in both PostgreSQL and Redis.
+Atomically increments (or decrements if negative) the player's score in both PostgreSQL and Redis. Emits a `leaderboard:update` event to all connected WebSocket clients with the refreshed leaderboard.
+
+### Get leaderboard
+```
+GET /leaderboardstats
+```
+
+Returns the current ranked leaderboard read directly from the Redis Sorted Set.
+
+## WebSocket Events (Socket.IO)
+
+Connect to the server at `http://localhost:3000` using a Socket.IO client.
+
+### `leaderboard:update` (server → client)
+
+Emitted in three situations:
+
+1. **On connection** — the server pushes the full leaderboard to the newly connected client immediately.
+2. **On register** — after a new player is added, all clients receive the updated leaderboard.
+3. **On score update** — after any score change, all clients receive the updated leaderboard.
+
+Payload shape:
+```json
+{
+  "leaderboard": [
+    { "value": "player1", "score": 250 },
+    { "value": "player2", "score": 100 }
+  ]
+}
+```
+
+The array is ordered highest score first (descending), fetched from the Redis Sorted Set via `ZRANGEWITHSCORES ... REV`.
 
 ## Getting Started
 
@@ -138,7 +169,11 @@ The server starts at `http://localhost:3000`.
 
 On startup, `loadData()` checks whether the `leaderboard` key exists in Redis and has entries. If not, it bulk-loads all users from PostgreSQL into the Sorted Set using a Redis pipeline. After that:
 
-- **Register** — new user is written to Postgres, then added to the Sorted Set with `ZADD`.
-- **Update** — score delta is applied to Postgres with an atomic `increment`, then mirrored to Redis with `ZINCRBY`.
+- **Register** — new user is written to Postgres, then added to the Sorted Set with `ZADD`. A `leaderboard:update` Socket.IO event is broadcast to all clients.
+- **Update** — the new score is applied to Postgres with an atomic `increment`, then applired to Redis with the command `ZINCRBY`. A `leaderboard:update` Socket.IO event is broadcast to all clients.
+- **Connect** — on every new WebSocket connection, the server immediately emits the current leaderboard to the client.
 
-This keeps the Sorted Set authoritative for ranked reads without a round-trip to the database.
+
+### CORS
+
+The Socket.IO server and Express are both configured to accept connections from `http://localhost:5173` (the default Vite dev-server origin). Update `corsOptions` in `app.ts` if your frontend runs on a different port.

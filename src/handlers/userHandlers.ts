@@ -5,7 +5,6 @@ import type { Server } from 'socket.io';
 
 const getLeaderboardScores = async () => {
     const leaderboard_scores = await redisClient.zRangeWithScores("leaderboard", 0, -1, {REV: true});
-    console.log(leaderboard_scores);
     return leaderboard_scores;
 }
 
