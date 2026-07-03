@@ -1,10 +1,13 @@
 services:
-  app:
+  live_leaderboard_backend:
     build:
       context: .
       dockerfile: Dockerfile
+    networks:
+      - web
     environment:
       - NODE_ENV=production
+    
 
 networks:
   web:
