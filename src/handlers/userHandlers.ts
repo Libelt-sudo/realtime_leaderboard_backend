@@ -71,6 +71,25 @@ export const handleUpdate = async (req: Request, res: Response, io: Server) => {
 };
 
 export const handleGet = async (req: Request, res: Response, io: Server) => {
-    const leaderboard_scores = getLeaderboardScores();
+    const leaderboard_scores = await getLeaderboardScores();
     res.json({response: leaderboard_scores});
+};
+
+export const handleCheckUser = async (req: Request, res: Response) => {
+    try {
+        const raw = req.params["username"];
+        const username = typeof raw === 'string' ? raw : undefined;
+
+        if (username === undefined) {
+            throw new Error("path parameter 'username' not provided!");
+        }
+
+        const user = await prisma.user.findUnique({ where: { username: username } });
+        res.json({ exists: user !== null });
+    } catch (e) {
+        console.error('Error checking user:', e);
+        return res.status(500).json({
+            error: 'Failed to check user'
+        });
+    }
 };

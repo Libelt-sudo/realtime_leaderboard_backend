@@ -13,7 +13,7 @@ import { redisClient } from './redis_client.ts';
 
 import { validateData } from './middleware/validationMiddleware.js';
 import { userRegisterationSchema, userUpdateSchema } from './schemas/userSchema.js';
-import { handleRegisteration, handleUpdate, handleGet, handleOnConnection } from './handlers/userHandlers.js';
+import { handleRegisteration, handleUpdate, handleGet, handleCheckUser, handleOnConnection } from './handlers/userHandlers.js';
 import { loadData } from './services.ts';
 
 
@@ -54,6 +54,7 @@ app.post('/api/add',
 );
 app.post('/api/update/:username', validateData(userUpdateSchema), async (req: Request, res: Response)=> handleUpdate(req, res, io))
 app.get('/api/leaderboardstats', async (req: Request, res: Response)=> handleGet(req, res, io));
+app.get('/api/exists/:username', async (req: Request, res: Response)=> handleCheckUser(req, res));
 
 
 io.on("connection", async (socket) => {
