@@ -23,7 +23,7 @@ const PORT = 3000;
 
 
 const corsOptions = {
-  origin: ["http://localhost:5174"],
+  origin: ["https://leaderboard.luis-seibet.com"],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -47,9 +47,13 @@ await redisClient.connect();
 await loadData();
 
 
-app.post('/add', validateData(userRegisterationSchema), async (req: Request, res: Response)=> handleRegisteration(req, res, io));
-app.post('/update/:username', validateData(userUpdateSchema), async (req: Request, res: Response)=> handleUpdate(req, res, io))
-app.get('/leaderboardstats', async (req: Request, res: Response)=> handleGet(req, res, io));
+app.post('/api/add',
+  (req, res, next) => { console.log('HIT /api/add'); next(); },   // ← add this
+  validateData(userRegisterationSchema),
+  async (req, res) => handleRegisteration(req, res, io)
+);
+app.post('/api/update/:username', validateData(userUpdateSchema), async (req: Request, res: Response)=> handleUpdate(req, res, io))
+app.get('/api/leaderboardstats', async (req: Request, res: Response)=> handleGet(req, res, io));
 
 
 io.on("connection", async (socket) => {
@@ -61,6 +65,6 @@ io.on("connection", async (socket) => {
 });
 
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`server running at http://localhost:${PORT}`);
 });

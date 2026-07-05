@@ -5,10 +5,13 @@ services:
       dockerfile: Dockerfile
     networks:
       - web
+      - db_net
     environment:
       - NODE_ENV=production
     
 
 networks:
   web:
+    external: true
+  db_net:
     external: true
