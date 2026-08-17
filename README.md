@@ -2,6 +2,10 @@
 
 A backend API for a realtime leaderboard system built with Node.js, TypeScript, Express, PostgreSQL, and Redis. Player scores are stored in PostgreSQL and cached in a Redis Sorted Set. WebSocket support via Socket.IO broadcasts live leaderboard updates to all connected clients whenever a score changes or a new player registers.
 
+## UPDATE
+This project is now fully deployed! You can find it on my website, link in the description. 
+
+
 ## Tech Stack
 
 | Layer | Technology |
